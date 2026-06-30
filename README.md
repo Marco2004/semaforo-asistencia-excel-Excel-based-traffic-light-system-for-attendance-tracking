@@ -58,8 +58,6 @@ Muestran el resumen del equipo asignado:
 
 ## Clasificacion del semaforo
 
-La clasificacion permite identificar rapidamente el estado de asistencia:
-
 - `VERDE`: asistencia dentro del rango esperado.
 - `AMARILLO`: retardo leve o alerta inicial.
 - `ROJO`: retardo mayor.
@@ -94,4 +92,101 @@ Este proyecto demuestra capacidad para:
 - Crear tableros simples para seguimiento de equipos.
 - Reducir conteos manuales.
 - Presentar informacion clara para toma de decisiones.
+
+---
+
+# Excel Attendance Traffic Light System
+
+Microsoft Excel tool for reviewing attendance, lateness, absences, and schedule compliance through a visual traffic light classification system.
+
+This project uses an anonymized demo version. All names, employee numbers, and records included in the file are fictional and are used only to demonstrate how the system works.
+
+## Public File
+
+- `Sistema_Asistencia_Semaforo_2026_DEMO_ANONIMIZADO.xlsx`
+
+## Problem Solved
+
+The workbook helps turn clock-in and clock-out records into easy-to-review metrics. Instead of manually counting late arrivals or absences, the system classifies each record and summarizes results by supervisor and employee.
+
+## How To Use
+
+1. Open `Sistema_Asistencia_Semaforo_2026_DEMO_ANONIMIZADO.xlsx`.
+2. Review the `PERSONAL` sheet to see the demo employee catalog.
+3. Review the `REGISTRO` sheet, where dates, check-in times, check-out times, and traffic light classifications are stored.
+4. Open the supervisor sheets to review team summaries.
+5. Change the period in the summary if you want to review another available month.
+
+## Main Sheets
+
+### `PERSONAL`
+
+Contains the demo employee catalog.
+
+Fictional example:
+
+| EMP No. | NAME | SUPERVISOR | ACTIVE |
+| --- | --- | --- | --- |
+| 7001 | SOFIA MORALES VEGA | CAMILA RIVERA NAVA | YES |
+| 7002 | DIEGO RAMIREZ PENA | CAMILA RIVERA NAVA | YES |
+
+### `REGISTRO`
+
+Contains attendance records.
+
+Fictional example:
+
+| DATE | EMP No. | CHECK-IN | CHECK-OUT | STATUS |
+| --- | --- | --- | --- | --- |
+| 06/01/2026 | 7001 | 08:00 | 17:00 | GREEN |
+| 06/01/2026 | 7002 | 08:12 | 17:00 | YELLOW |
+| 06/02/2026 | 7003 | - | - | ABSENCE |
+
+### Supervisor Sheets
+
+Show each team's summary:
+
+- Total green records.
+- Total yellow records.
+- Total red records.
+- Total absences.
+- Compliance percentage.
+- Average or total hours depending on the available record.
+
+## Traffic Light Classification
+
+- `GREEN`: attendance within the expected range.
+- `YELLOW`: minor lateness or first alert.
+- `RED`: greater lateness.
+- `STRONG RED`: more severe non-compliance.
+- `ABSENCE`: absence or incomplete record according to the configured rule.
+
+## Technologies Used
+
+- Microsoft Excel
+- Conditional formulas
+- `IF`
+- `COUNTIFS`
+- Helper catalogs
+- Period summaries
+- Business rule classification
+
+## Privacy
+
+This version does not contain real data. Before publication:
+
+- Names were replaced with fictional names.
+- Employee numbers were replaced with fictional identifiers.
+- Records were kept as demonstration data.
+- The original file should not be published.
+
+## Project Value
+
+This project demonstrates the ability to:
+
+- Automate operational reports in Excel.
+- Transform raw records into indicators.
+- Create simple dashboards for team tracking.
+- Reduce manual counting.
+- Present clear information for decision-making.
 
