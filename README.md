@@ -35,15 +35,16 @@ Ejemplo ficticio:
 
 ### `REGISTRO`
 
-Contiene los registros de asistencia.
+Contiene los registros de asistencia. La columna `NOVEDAD` permite marcar un dia como excepcion (vacaciones, incapacidad, permiso o festivo) mediante una lista desplegable; cuando se llena, sobrescribe la clasificacion automatica del semaforo para ese dia.
 
 Ejemplo ficticio:
 
-| FECHA | No. EMP | ENTRADA | SALIDA | SEMAFORO |
-| --- | --- | --- | --- | --- |
-| 01/06/2026 | 7001 | 08:00 | 17:00 | VERDE |
-| 01/06/2026 | 7002 | 08:12 | 17:00 | AMARILLO |
-| 02/06/2026 | 7003 | - | - | FALTA |
+| FECHA | No. EMP | ENTRADA | SALIDA | SEMAFORO | NOVEDAD |
+| --- | --- | --- | --- | --- | --- |
+| 01/06/2026 | 7001 | 08:00 | 17:00 | VERDE | |
+| 01/06/2026 | 7002 | 08:12 | 17:00 | AMARILLO | |
+| 02/06/2026 | 7003 | - | - | FALTA | |
+| 03/06/2026 | 7004 | - | - | VACACIONES | VACACIONES |
 
 ### Hojas de supervisor
 
@@ -53,8 +54,10 @@ Muestran el resumen del equipo asignado:
 - Total de registros amarillos.
 - Total de registros rojos.
 - Total de faltas.
+- Total de dias de vacaciones, festivos, incapacidades y permisos.
 - Porcentaje de cumplimiento.
 - Promedio o conteo de horas segun el registro disponible.
+- Grafica de distribucion mensual por colaborador.
 
 ## Clasificacion del semaforo
 
@@ -63,6 +66,10 @@ Muestran el resumen del equipo asignado:
 - `ROJO`: retardo mayor.
 - `ROJO FUERTE`: incumplimiento mas severo.
 - `FALTA`: ausencia o registro incompleto segun la regla configurada.
+- `VACACIONES`: dia marcado como vacaciones en la columna NOVEDAD.
+- `FESTIVO`: dia marcado como festivo en la columna NOVEDAD.
+- `INCAPACIDAD`: dia marcado como incapacidad en la columna NOVEDAD.
+- `PERMISO`: dia marcado como permiso en la columna NOVEDAD.
 
 ## Tecnologias usadas
 
@@ -132,15 +139,16 @@ Fictional example:
 
 ### `REGISTRO`
 
-Contains attendance records.
+Contains attendance records. The `NOVEDAD` (exception) column lets you flag a day as vacation, sick leave, personal leave, or holiday through a dropdown list; when filled in, it overrides the automatic traffic-light classification for that day.
 
 Fictional example:
 
-| DATE | EMP No. | CHECK-IN | CHECK-OUT | STATUS |
-| --- | --- | --- | --- | --- |
-| 06/01/2026 | 7001 | 08:00 | 17:00 | GREEN |
-| 06/01/2026 | 7002 | 08:12 | 17:00 | YELLOW |
-| 06/02/2026 | 7003 | - | - | ABSENCE |
+| DATE | EMP No. | CHECK-IN | CHECK-OUT | STATUS | EXCEPTION |
+| --- | --- | --- | --- | --- | --- |
+| 06/01/2026 | 7001 | 08:00 | 17:00 | GREEN | |
+| 06/01/2026 | 7002 | 08:12 | 17:00 | YELLOW | |
+| 06/02/2026 | 7003 | - | - | ABSENCE | |
+| 06/03/2026 | 7004 | - | - | VACATION | VACATION |
 
 ### Supervisor Sheets
 
@@ -150,8 +158,10 @@ Show each team's summary:
 - Total yellow records.
 - Total red records.
 - Total absences.
+- Total vacation, holiday, sick leave, and personal leave days.
 - Compliance percentage.
 - Average or total hours depending on the available record.
+- Monthly distribution chart per team member.
 
 ## Traffic Light Classification
 
@@ -160,6 +170,10 @@ Show each team's summary:
 - `RED`: greater lateness.
 - `STRONG RED`: more severe non-compliance.
 - `ABSENCE`: absence or incomplete record according to the configured rule.
+- `VACATION`: day flagged as vacation in the exception column.
+- `HOLIDAY`: day flagged as a holiday in the exception column.
+- `SICK LEAVE`: day flagged as sick leave in the exception column.
+- `PERSONAL LEAVE`: day flagged as personal leave in the exception column.
 
 ## Technologies Used
 
