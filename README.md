@@ -14,14 +14,17 @@ A 100% Microsoft Excel system (no macros) that turns check-in/check-out records 
   - [Qué problema resuelve](#qué-problema-resuelve)
   - [Estructura del libro](#estructura-del-libro)
   - [Flujo de trabajo](#flujo-de-trabajo)
+  - [Guía de uso paso a paso](#guía-de-uso-paso-a-paso)
   - [Lógica del semáforo](#lógica-del-semáforo)
   - [Catálogo de personal](#catálogo-de-personal)
   - [Tableros por supervisor](#tableros-por-supervisor)
+  - [Arquitectura interna y fórmulas clave](#arquitectura-interna-y-fórmulas-clave)
   - [Características principales](#características-principales)
   - [Ejemplo de uso](#ejemplo-de-uso)
   - [Control de calidad](#control-de-calidad)
   - [Cómo adaptarlo](#cómo-adaptarlo)
   - [Requisitos](#requisitos)
+  - [Instalación y puesta en marcha](#instalación-y-puesta-en-marcha)
   - [Descargar o clonar](#descargar-o-clonar)
   - [Privacidad](#privacidad)
   - [Tecnologías y fórmulas usadas](#tecnologías-y-fórmulas-usadas)
@@ -33,14 +36,17 @@ A 100% Microsoft Excel system (no macros) that turns check-in/check-out records 
   - [What problem it solves](#what-problem-it-solves)
   - [Workbook structure](#workbook-structure)
   - [Workflow](#workflow)
+  - [Step-by-step usage guide](#step-by-step-usage-guide)
   - [Traffic-light logic](#traffic-light-logic)
   - [Employee catalog](#employee-catalog)
   - [Supervisor dashboards](#supervisor-dashboards)
+  - [Internal architecture and key formulas](#internal-architecture-and-key-formulas)
   - [Main features](#main-features)
   - [Usage example](#usage-example)
   - [Quality assurance](#quality-assurance)
   - [How to adapt it](#how-to-adapt-it)
   - [Requirements](#requirements)
+  - [Installation and setup](#installation-and-setup)
   - [Download or clone](#download-or-clone)
   - [Privacy](#privacy)
   - [Technologies and formulas used](#technologies-and-formulas-used)
@@ -94,6 +100,40 @@ El workbook se organiza en tres tipos de hoja:
 
 > Nota: como el archivo usa fórmulas, Excel recalcula los resultados al abrirlo. La vista previa de GitHub no siempre muestra el workbook igual que Excel de escritorio; para verlo con fórmulas activas hay que descargarlo y abrirlo en Excel.
 
+## Guía de uso paso a paso
+
+El sistema tiene dos tipos de usuario, cada uno con su propio recorrido dentro del mismo archivo:
+
+**Rol 1 — Quien administra el catálogo (RH / coordinación):**
+
+1. Da de alta al colaborador en `PERSONAL` con su número de empleado, nombre y supervisor asignado.
+2. Marca `ACTIVO = SÍ`. Este campo es lo único que decide si el colaborador aparece en el tablero de su supervisor; no hace falta tocar ninguna fórmula.
+3. Define sus ocho umbrales de horario (verde, amarillo, rojo y rojo fuerte, uno para entre semana y otro para fin de semana). Estos umbrales son independientes por colaborador, así que turnos distintos conviven en el mismo catálogo.
+4. Si el colaborador deja el equipo, cambia `ACTIVO` a `NO` en lugar de borrar la fila: conserva su historial en `REGISTRO` sin que siga apareciendo en los tableros vigentes.
+
+**Rol 2 — Quien captura asistencia (día a día):**
+
+1. Agrega una fila en `REGISTRO` por cada evento: fecha, número de empleado, hora de entrada y hora de salida.
+2. Si el día tuvo una justificación autorizada, la selecciona en la lista desplegable de `NOVEDAD` (`VACACIONES`, `INCAPACIDAD`, `PERMISO` o `FESTIVO`); si no, la deja vacía.
+3. El resto de la fila (nombre, supervisor, día, mes, tipo de día, semáforo y horas) se calcula solo, apenas hay fecha, número de empleado y horas capturadas.
+4. Si una fila muestra `NO EXISTE` en nombre/supervisor o `REVISAR` en el semáforo, el número de empleado no coincide con `PERSONAL` (typo, empleado inactivo o umbrales incompletos). Se corrige en el catálogo, no en `REGISTRO`.
+
+**Rol 3 — Supervisor que revisa su equipo (mensual):**
+
+1. Abre su propia hoja (una por supervisor) y elige el mes en el selector desplegable.
+2. La lista de colaboradores activos de su equipo aparece automáticamente; no necesita filtrar nada a mano.
+3. Revisa los conteos por estado, el porcentaje verde, el promedio de horas y la gráfica circular del periodo.
+4. Si algún colaborador no aparece, casi siempre es porque su `ACTIVO` en `PERSONAL` no está en `SÍ` o porque su supervisor asignado no coincide exactamente con el nombre de la hoja.
+
+**Errores comunes y cómo resolverlos:**
+
+| Señal en el archivo | Causa típica | Solución |
+| --- | --- | --- |
+| `NO EXISTE` en `NOMBRE`/`SUPERVISOR` | El número de empleado en `REGISTRO` no está en `PERSONAL` | Verificar el número de empleado o darlo de alta en `PERSONAL` |
+| `REVISAR` en `SEMÁFORO` | El empleado existe pero sus umbrales de horario están incompletos o mal capturados | Completar los ocho umbrales del colaborador en `PERSONAL` |
+| Un colaborador no aparece en el tablero de su supervisor | `ACTIVO` no está en `SÍ`, o el nombre del supervisor no coincide exactamente con el de la hoja | Corregir el campo `ACTIVO` o el nombre del supervisor en `PERSONAL` |
+| Los totales no cambian al capturar un registro nuevo | El archivo no ha recalculado, o la fila se capturó fuera del rango que usan las fórmulas | Forzar recálculo (`Ctrl+Alt+F9`) o extender el rango de fórmulas/filtro |
+
 ## Lógica del semáforo
 
 `REGISTRO` es la base de datos operativa, con encabezados congelados y filtro sobre el rango principal. Cada fila calcula automáticamente, a partir de la fecha, el empleado, la entrada y la salida:
@@ -135,6 +175,80 @@ Cada supervisor tiene su propia hoja, con la misma estructura:
 - Gráfica circular de distribución mensual.
 
 Los conteos se calculan contra `REGISTRO`, filtrando por empleado, mes seleccionado y estado de semáforo. El porcentaje verde se calcula solo sobre los estados operativos; las novedades justificadas se muestran aparte para no mezclarlas con incumplimientos.
+
+## Arquitectura interna y fórmulas clave
+
+El archivo no usa una sola fórmula "mágica": encadena varias técnicas de Excel, cada una resolviendo un problema puntual. Así fluye la información entre hojas:
+
+```
+PERSONAL (catálogo maestro)
+  └─ columna LLAVE = SUPERVISOR & "|" & posición consecutiva entre sus activos
+        │
+        ▼
+REGISTRO (captura diaria)
+  ├─ trae NOMBRE / SUPERVISOR desde PERSONAL buscando por número de empleado
+  ├─ calcula DÍA, MES y TIPO DÍA a partir de la fecha
+  └─ compara la hora de entrada contra los umbrales del empleado → SEMÁFORO
+        │
+        ▼
+Tableros de supervisor
+  ├─ reconstruyen la lista de activos de ESE supervisor buscando "SUPERVISOR|1", "SUPERVISOR|2"... en LLAVE
+  ├─ cuentan resultados del mes elegido contra REGISTRO (COUNTIFS)
+  └─ promedian horas (AVERAGEIFS) y calculan % VERDE sobre el total operativo
+```
+
+Algunas fórmulas reales del archivo, simplificadas para lectura (las columnas exactas están en la hoja):
+
+Búsqueda cruzada de nombre/supervisor por número de empleado (`REGISTRO`):
+```excel
+=IF($B2="","",IFERROR(INDEX(PERSONAL!$B$2:$B$80,MATCH($B2,PERSONAL!$A$2:$A$80,0)),"NO EXISTE"))
+```
+
+Horas trabajadas, incluyendo turnos que cruzan la medianoche (`REGISTRO`):
+```excel
+=IF(OR($C2="",$D2=""),"",IF($D2>=$C2,($D2-$C2)*24,(1-$C2+$D2)*24))
+```
+
+Clasificación del semáforo, evaluando primero los niveles más severos (`REGISTRO`):
+```excel
+=IF(OR($A2="",$B2=""),"",
+  IF($L2<>"",UPPER($L2),
+  IF($C2="","FALTA",
+  IFERROR(
+    IF($C2>=umbral_rojo_fuerte,"ROJO FUERTE",
+    IF($C2>=umbral_rojo,"ROJO",
+    IF($C2>=umbral_amarillo,"AMARILLO","VERDE"))),
+  "REVISAR"))))
+```
+Cada `umbral_*` es en realidad un `INDEX/MATCH` contra la columna correspondiente de `PERSONAL`, eligiendo el par de columnas de entre semana o fin de semana según `TIPO DÍA`.
+
+Clave compuesta que permite reconstruir el equipo de cada supervisor sin macros (`PERSONAL`):
+```excel
+' Columna IDX SUP: posición consecutiva del colaborador activo dentro de su supervisor
+=IF($A2="","",IF($D2<>"SÍ","",COUNTIFS($C$2:C2,C2,$D$2:D2,"SÍ")))
+' Columna LLAVE: combina supervisor + posición en un identificador único
+=IF(M2="","",C2&"|"&M2)
+```
+
+Lectura de esa clave desde el tablero del supervisor, fila por fila:
+```excel
+=IFERROR(INDEX(PERSONAL!$A:$A,MATCH($B$3&"|"&1,PERSONAL!$N:$N,0)),"")
+```
+`$B$3` es el nombre del supervisor de esa hoja; el `&"|"&1`, `&"|"&2`, etc. avanza una posición por fila, así que la lista de colaboradores activos se arma sola y se corre automáticamente si alguien deja de estar activo.
+
+Conteo mensual por estado y promedio de horas (tablero de supervisor):
+```excel
+=COUNTIFS(REGISTRO!$B$2:$B$1722,$B8,REGISTRO!$H$2:$H$1722,$C$5,REGISTRO!$J$2:$J$1722,"VERDE")
+=IFERROR(AVERAGEIFS(REGISTRO!$K$2:$K$1722,REGISTRO!$F$2:$F$1722,$B$3,REGISTRO!$H$2:$H$1722,$C$5),0)
+=IF(SUM(D20:H20)=0,0,D20/SUM(D20:H20))
+```
+
+Validación de datos que evita capturas inválidas:
+- Lista desplegable en `NOVEDAD`: `VACACIONES, INCAPACIDAD, PERMISO, FESTIVO`.
+- Rango de hora válido en entrada/salida: `AND(hora>=00:00:00, hora<=23:59:59)`.
+- Lista desplegable de mes en cada tablero de supervisor: `ENERO...DICIEMBRE`.
+
+Todo esto corre con fórmulas nativas de Excel (incluyendo fórmulas de matriz en las columnas calculadas de `REGISTRO`); no hay VBA, Power Query ni conexiones externas.
 
 ## Características principales
 
@@ -190,6 +304,18 @@ Para usarlo con otro equipo:
 - Conocimiento básico de captura, filtros y listas desplegables.
 
 No se necesita instalar nada adicional.
+
+## Instalación y puesta en marcha
+
+No hay instalador: es un solo archivo `.xlsx`. Los pasos son de configuración, no de instalación de software.
+
+1. **Obtener el archivo.** Descárgalo desde este repositorio (ver [Descargar o clonar](#descargar-o-clonar)) o copia el que ya tengas.
+2. **Abrirlo con Excel de escritorio**, no con la vista previa de GitHub ni con un lector web: solo el Excel de escritorio recalcula las fórmulas y respeta el formato condicional y las gráficas.
+3. **Habilitar contenido si Excel lo pide.** Al venir de una descarga, Excel puede abrir el archivo en "Vista protegida". Selecciona `Habilitar edición`. El archivo no contiene macros, así que no debe aparecer ninguna advertencia de seguridad de macros; si aparece, verifica que estás abriendo el `.xlsx` original y no una copia renombrada como `.xlsm`.
+4. **Verificar el cálculo automático.** En `Fórmulas > Opciones para calcular`, confirma que esté en `Automático`. Si en algún momento los totales no se actualizan, fuerza un recálculo completo con `Ctrl+Alt+F9`.
+5. **Revisar el idioma regional de Excel.** Las fórmulas usan `;` o `,` como separador de argumentos según la configuración regional de Windows; si Excel marca error en una fórmula al abrir el archivo en un equipo con configuración regional distinta, es ese separador, no un error de la lógica del archivo.
+6. **Compatibilidad.** Se probó en Excel de escritorio (Microsoft 365 / Excel 2019 o superior). Excel Online y la app móvil pueden abrirlo para consulta, pero algunas fórmulas de matriz y la interacción con listas desplegables se comportan mejor en escritorio. No se ha probado en LibreOffice Calc ni Google Sheets; al ser fórmulas estándar debería importarse, pero el formato condicional y las gráficas pueden requerir ajuste manual.
+7. **Primer uso.** Antes de capturar datos reales, sigue la [guía de uso paso a paso](#guía-de-uso-paso-a-paso) para dar de alta al menos un colaborador de prueba y confirmar que el semáforo y los tableros calculan como se espera en tu equipo.
 
 ## Descargar o clonar
 
@@ -292,6 +418,40 @@ The workbook is organized into three kinds of sheets:
 
 > Note: because the workbook uses formulas, Excel recalculates results when it opens the file. GitHub's preview does not always render the workbook the way desktop Excel does; to see it with live formulas, download it and open it in Excel.
 
+## Step-by-step usage guide
+
+The system has three kinds of users, each with their own path through the same file:
+
+**Role 1 — Whoever administers the catalog (HR / coordination):**
+
+1. Register the employee in `PERSONAL` with employee number, name, and assigned supervisor.
+2. Set `ACTIVO = SÍ` (yes). This single field decides whether the employee shows up on their supervisor's dashboard — no formula needs to be touched.
+3. Define their eight schedule thresholds (green, yellow, red, and strong red, one set for weekdays and one for weekends). Thresholds are independent per employee, so different shifts coexist in the same catalog.
+4. If someone leaves the team, switch `ACTIVO` to `NO` instead of deleting the row: it keeps their history in `REGISTRO` without showing them on current dashboards.
+
+**Role 2 — Whoever captures attendance (day to day):**
+
+1. Add one row per event in `REGISTRO`: date, employee number, check-in time, and check-out time.
+2. If the day had an authorized justification, pick it from the `NOVEDAD` dropdown (`VACACIONES`, `INCAPACIDAD`, `PERMISO`, or `FESTIVO`); otherwise leave it blank.
+3. The rest of the row (name, supervisor, day, month, day type, traffic light, and hours) calculates itself as soon as date, employee number, and times are entered.
+4. If a row shows `NO EXISTE` in name/supervisor or a review flag in the traffic-light column, the employee number doesn't match `PERSONAL` (typo, inactive employee, or incomplete thresholds). Fix it in the catalog, not in `REGISTRO`.
+
+**Role 3 — Supervisor reviewing their team (monthly):**
+
+1. Open their own sheet (one per supervisor) and pick the month from the dropdown.
+2. The list of their team's active employees appears automatically — no manual filtering needed.
+3. Review counts by status, the green percentage, average hours, and the period's pie chart.
+4. If an employee is missing, it's almost always because their `ACTIVO` field in `PERSONAL` isn't set to yes, or their assigned supervisor doesn't exactly match the sheet's name.
+
+**Common issues and how to fix them:**
+
+| Signal in the file | Typical cause | Fix |
+| --- | --- | --- |
+| `NO EXISTE` in name/supervisor | The employee number in `REGISTRO` isn't in `PERSONAL` | Check the employee number or register it in `PERSONAL` |
+| Review flag in the traffic-light column | The employee exists but their schedule thresholds are incomplete or miscaptured | Fill in all eight thresholds for that employee in `PERSONAL` |
+| An employee is missing from their supervisor's dashboard | `ACTIVO` isn't set to yes, or the supervisor name doesn't match the sheet exactly | Fix the `ACTIVO` field or the supervisor name in `PERSONAL` |
+| Totals don't change after entering a new record | The workbook hasn't recalculated, or the row was entered outside the range the formulas cover | Force a recalculation (`Ctrl+Alt+F9`) or extend the formula/filter range |
+
 ## Traffic-light logic
 
 `REGISTRO` is the operational database, with frozen headers and a filter on the main range. Each row automatically calculates, from the date, employee, check-in, and check-out:
@@ -333,6 +493,80 @@ Each supervisor has their own sheet, sharing the same structure:
 - A monthly distribution pie chart.
 
 Counts are calculated against `REGISTRO`, filtering by employee, selected month, and traffic-light status. The green percentage is calculated only over operational states; authorized exceptions are shown separately so they aren't mixed with attendance issues.
+
+## Internal architecture and key formulas
+
+The file doesn't rely on one "magic" formula: it chains several Excel techniques, each solving one specific problem. This is how data flows between sheets:
+
+```
+PERSONAL (master catalog)
+  └─ LLAVE column = SUPERVISOR & "|" & consecutive position among their active employees
+        │
+        ▼
+REGISTRO (daily entry)
+  ├─ pulls NOMBRE / SUPERVISOR from PERSONAL by looking up the employee number
+  ├─ calculates DÍA, MES, and TIPO DÍA from the date
+  └─ compares the check-in time against that employee's thresholds → SEMÁFORO
+        │
+        ▼
+Supervisor dashboards
+  ├─ rebuild that supervisor's active-employee list by looking up "SUPERVISOR|1", "SUPERVISOR|2"... in LLAVE
+  ├─ count the selected month's results against REGISTRO (COUNTIFS)
+  └─ average hours (AVERAGEIFS) and compute % green over the operational total
+```
+
+Some of the actual formulas in the file, simplified for readability (the exact columns live in the sheet):
+
+Cross-sheet lookup of name/supervisor by employee number (`REGISTRO`):
+```excel
+=IF($B2="","",IFERROR(INDEX(PERSONAL!$B$2:$B$80,MATCH($B2,PERSONAL!$A$2:$A$80,0)),"NO EXISTE"))
+```
+
+Hours worked, including shifts that cross midnight (`REGISTRO`):
+```excel
+=IF(OR($C2="",$D2=""),"",IF($D2>=$C2,($D2-$C2)*24,(1-$C2+$D2)*24))
+```
+
+Traffic-light classification, checking the most severe levels first (`REGISTRO`):
+```excel
+=IF(OR($A2="",$B2=""),"",
+  IF($L2<>"",UPPER($L2),
+  IF($C2="","FALTA",
+  IFERROR(
+    IF($C2>=strong_red_threshold,"ROJO FUERTE",
+    IF($C2>=red_threshold,"ROJO",
+    IF($C2>=yellow_threshold,"AMARILLO","VERDE"))),
+  "REVISAR"))))
+```
+Each `*_threshold` is actually an `INDEX/MATCH` against the matching column in `PERSONAL`, picking the weekday or weekend pair of columns based on `TIPO DÍA`.
+
+Composite key that lets each supervisor's team be rebuilt without macros (`PERSONAL`):
+```excel
+' IDX SUP column: consecutive position of the active employee within their supervisor
+=IF($A2="","",IF($D2<>"SÍ","",COUNTIFS($C$2:C2,C2,$D$2:D2,"SÍ")))
+' LLAVE column: combines supervisor + position into a unique identifier
+=IF(M2="","",C2&"|"&M2)
+```
+
+Reading that key back from the supervisor dashboard, row by row:
+```excel
+=IFERROR(INDEX(PERSONAL!$A:$A,MATCH($B$3&"|"&1,PERSONAL!$N:$N,0)),"")
+```
+`$B$3` is that sheet's supervisor name; the `&"|"&1`, `&"|"&2`, etc. advances one position per row, so the active-employee list assembles itself and automatically shifts if someone stops being active.
+
+Monthly count per status and average hours (supervisor dashboard):
+```excel
+=COUNTIFS(REGISTRO!$B$2:$B$1722,$B8,REGISTRO!$H$2:$H$1722,$C$5,REGISTRO!$J$2:$J$1722,"VERDE")
+=IFERROR(AVERAGEIFS(REGISTRO!$K$2:$K$1722,REGISTRO!$F$2:$F$1722,$B$3,REGISTRO!$H$2:$H$1722,$C$5),0)
+=IF(SUM(D20:H20)=0,0,D20/SUM(D20:H20))
+```
+
+Data validation that prevents invalid entries:
+- Dropdown list in `NOVEDAD`: `VACACIONES, INCAPACIDAD, PERMISO, FESTIVO`.
+- Valid time range for check-in/check-out: `AND(time>=00:00:00, time<=23:59:59)`.
+- Month dropdown on each supervisor dashboard: `ENERO...DICIEMBRE`.
+
+All of this runs on native Excel formulas (including array formulas in `REGISTRO`'s calculated columns); there is no VBA, Power Query, or external connections.
 
 ## Main features
 
@@ -388,6 +622,18 @@ To use it with another team:
 - Basic knowledge of data entry, filters, and dropdown lists.
 
 No additional installation is required.
+
+## Installation and setup
+
+There's no installer: it's a single `.xlsx` file. The steps below are configuration, not software installation.
+
+1. **Get the file.** Download it from this repository (see [Download or clone](#download-or-clone)) or copy the one you already have.
+2. **Open it with desktop Excel**, not GitHub's preview or a web viewer: only desktop Excel recalculates formulas and honors conditional formatting and charts correctly.
+3. **Enable content if Excel asks.** Since it comes from a download, Excel may open it in "Protected View." Click `Enable Editing`. The file contains no macros, so no macro-security warning should appear; if one does, confirm you're opening the original `.xlsx` and not a copy renamed to `.xlsm`.
+4. **Check automatic calculation.** Under `Formulas > Calculation Options`, confirm it's set to `Automatic`. If totals ever stop updating, force a full recalculation with `Ctrl+Alt+F9`.
+5. **Check Excel's regional settings.** Formulas use `;` or `,` as the argument separator depending on Windows' regional configuration; if Excel flags a formula error on a machine with different regional settings, that's the separator, not a problem with the file's logic.
+6. **Compatibility.** Tested on desktop Excel (Microsoft 365 / Excel 2019 or later). Excel Online and the mobile app can open it for viewing, but some array formulas and dropdown interactions behave better on desktop. It hasn't been tested in LibreOffice Calc or Google Sheets; since the formulas are standard it should import, but conditional formatting and charts may need manual adjustment.
+7. **First use.** Before entering real data, follow the [step-by-step usage guide](#step-by-step-usage-guide) to register at least one test employee and confirm the traffic light and dashboards calculate as expected for your team.
 
 ## Download or clone
 
