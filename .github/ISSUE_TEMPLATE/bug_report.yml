@@ -1,0 +1,36 @@
+name: Bug report / Reporte de error
+description: Report a problem with the workbook or documentation.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include real employee or attendance data.
+        No incluyas datos reales de empleados o asistencia.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description / Descripcion
+      description: Explain the issue clearly.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Pasos para reproducir
+      description: List the actions needed to reproduce the issue.
+    validations:
+      required: true
+  - type: input
+    id: excel-version
+    attributes:
+      label: Excel version / Version de Excel
+      placeholder: "Example: Microsoft Excel 365"
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy confirmation / Confirmacion de privacidad
+      options:
+        - label: I confirm this report does not include real or sensitive data.
+          required: true

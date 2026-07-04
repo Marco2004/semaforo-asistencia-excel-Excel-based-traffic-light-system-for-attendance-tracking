@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Support / Soporte
+    url: https://github.com/Marco2004/semaforo-asistencia-excel-Excel-based-traffic-light-system-for-attendance-tracking/blob/main/SUPPORT.md
+    about: Read support options before opening an issue.

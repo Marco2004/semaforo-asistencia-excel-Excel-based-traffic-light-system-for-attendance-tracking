@@ -1,0 +1,26 @@
+name: Feature request / Solicitud de mejora
+description: Suggest an improvement for the workbook or repository.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity / Problema u oportunidad
+      description: What should be improved?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution / Solucion propuesta
+      description: Describe the requested improvement.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy confirmation / Confirmacion de privacidad
+      options:
+        - label: I confirm this request does not include real or sensitive data.
+          required: true

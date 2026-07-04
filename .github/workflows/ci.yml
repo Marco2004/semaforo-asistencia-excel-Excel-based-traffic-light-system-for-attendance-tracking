@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  repository-checks:
+    name: Repository checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required files
+        shell: bash
+        run: |
+          required_files=(
+            "README.md"
+            "LICENSE"
+            "SECURITY.md"
+            "CONTRIBUTING.md"
+            "CODE_OF_CONDUCT.md"
+            "CHANGELOG.md"
+            "ROADMAP.md"
+            "SUPPORT.md"
+            "RELEASE.md"
+            ".editorconfig"
+            ".gitattributes"
+            ".env.example"
+            "docs/WORKBOOK.md"
+            "Sistema_Asistencia_Semaforo_2026_DEMO_ANONIMIZADO.xlsx"
+          )
+
+          for file in "${required_files[@]}"; do
+            test -f "$file" || {
+              echo "Missing required file: $file"
+              exit 1
+            }
+          done
+
+      - name: Check for accidental real-data filenames
+        shell: bash
+        run: |
+          if git ls-files | grep -Ei "(original|real|interno|private|confidential).*\\.xlsx$"; then
+            echo "Potential private workbook filename detected."
+            exit 1
+          fi

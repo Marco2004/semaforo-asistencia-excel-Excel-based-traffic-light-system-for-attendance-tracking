@@ -1,0 +1,15 @@
+name: CodeQL
+
+on:
+  workflow_dispatch:
+
+jobs:
+  note:
+    name: CodeQL applicability note
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain CodeQL status
+        run: |
+          echo "This repository publishes an Excel workbook and documentation."
+          echo "There is no application source code for CodeQL to analyze on push."
+          echo "If source code is added later, replace this note with a standard CodeQL analysis workflow."

@@ -2,6 +2,11 @@
 
 Excel-based traffic-light system for attendance tracking.
 
+[![Documentation](https://img.shields.io/badge/docs-bilingual-blue)](README.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Security Policy](https://img.shields.io/badge/security-policy-green)](SECURITY.md)
+[![Excel](https://img.shields.io/badge/Microsoft%20Excel-.xlsx-217346)](Sistema_Asistencia_Semaforo_2026_DEMO_ANONIMIZADO.xlsx)
+
 ## Espanol
 
 Sistema en Microsoft Excel para registrar asistencia, clasificar entradas con un semaforo operativo y resumir resultados por supervisor, colaborador y mes.
@@ -29,12 +34,30 @@ It does not require macros, add-ins, or additional software. It works with Excel
 | Archivo | Proposito |
 | --- | --- |
 | `README.md` | Presentacion general, uso rapido y estructura del workbook. |
+| `docs/WORKBOOK.md` | Documentacion detallada del archivo Excel. |
+| `examples/README.md` | Notas para ejemplos y datos demo. |
+| `tests/README.md` | Estrategia de validacion del workbook. |
+| `CONTRIBUTING.md` | Guia para contribuir al proyecto. |
+| `CODE_OF_CONDUCT.md` | Codigo de conducta para colaboracion. |
+| `CHANGELOG.md` | Historial de cambios. |
+| `ROADMAP.md` | Funcionalidades actuales y proximas mejoras. |
+| `SUPPORT.md` | Canales de soporte. |
+| `RELEASE.md` | Proceso de publicacion. |
 | `SECURITY.md` | Politica de seguridad, privacidad de datos y reporte responsable. |
 | `LICENSE` | Licencia del proyecto. |
 
 | File | Purpose |
 | --- | --- |
 | `README.md` | General overview, quick usage, and workbook structure. |
+| `docs/WORKBOOK.md` | Detailed Excel workbook documentation. |
+| `examples/README.md` | Notes for examples and demo data. |
+| `tests/README.md` | Workbook validation strategy. |
+| `CONTRIBUTING.md` | Contribution guide. |
+| `CODE_OF_CONDUCT.md` | Code of conduct for collaboration. |
+| `CHANGELOG.md` | Change history. |
+| `ROADMAP.md` | Current features and next improvements. |
+| `SUPPORT.md` | Support channels. |
+| `RELEASE.md` | Release process. |
 | `SECURITY.md` | Security policy, data privacy, and responsible reporting. |
 | `LICENSE` | Project license. |
 
@@ -173,6 +196,36 @@ English:
 - Filtros / Filters.
 - Formato condicional / Conditional formatting.
 - Graficas circulares / Pie charts.
+
+## Estructura del repositorio / Repository structure
+
+```text
+.
+|-- .github/
+|   |-- ISSUE_TEMPLATE/
+|   |-- PULL_REQUEST_TEMPLATE.md
+|   |-- FUNDING.yml
+|   |-- SECURITY.md
+|   |-- dependabot.yml
+|   `-- workflows/
+|-- docs/
+|-- examples/
+|-- tests/
+|-- .editorconfig
+|-- .env.example
+|-- .gitattributes
+|-- .gitignore
+|-- CHANGELOG.md
+|-- CODE_OF_CONDUCT.md
+|-- CONTRIBUTING.md
+|-- LICENSE
+|-- README.md
+|-- RELEASE.md
+|-- ROADMAP.md
+|-- SECURITY.md
+|-- SUPPORT.md
+`-- Sistema_Asistencia_Semaforo_2026_DEMO_ANONIMIZADO.xlsx
+```
 
 ## Privacidad / Privacy
 
