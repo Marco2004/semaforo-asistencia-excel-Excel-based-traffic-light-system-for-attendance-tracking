@@ -329,7 +329,7 @@ Descarga directa desde GitHub:
 Clonar con Git:
 
 ```powershell
-git clone https://github.com/Marco2004/semaforo-asistencia-excel-Excel-based-traffic-light-system-for-attendance-tracking.git
+git clonehttps://github.com/Marco2004/semaforo-asistencia-excel-Excel-based-traffic-light-system-for-attendance-tracking.git
 cd semaforo-asistencia-excel-Excel-based-traffic-light-system-for-attendance-tracking
 ```
 
