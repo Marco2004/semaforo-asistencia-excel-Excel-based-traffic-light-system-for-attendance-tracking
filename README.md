@@ -17,6 +17,7 @@ A 100% Microsoft Excel system (no macros) that turns check-in/check-out records 
   - [Guía de uso paso a paso](#guía-de-uso-paso-a-paso)
   - [Lógica del semáforo](#lógica-del-semáforo)
   - [Catálogo de personal](#catálogo-de-personal)
+  - [Casos especiales de horario](#casos-especiales-de-horario)
   - [Tableros por supervisor](#tableros-por-supervisor)
   - [Arquitectura interna y fórmulas clave](#arquitectura-interna-y-fórmulas-clave)
   - [Características principales](#características-principales)
@@ -39,6 +40,7 @@ A 100% Microsoft Excel system (no macros) that turns check-in/check-out records 
   - [Step-by-step usage guide](#step-by-step-usage-guide)
   - [Traffic-light logic](#traffic-light-logic)
   - [Employee catalog](#employee-catalog)
+  - [Special schedule cases](#special-schedule-cases)
   - [Supervisor dashboards](#supervisor-dashboards)
   - [Internal architecture and key formulas](#internal-architecture-and-key-formulas)
   - [Main features](#main-features)
@@ -85,8 +87,10 @@ El workbook se organiza en tres tipos de hoja:
 | Tipo de hoja | Función |
 | --- | --- |
 | `REGISTRO` | Base principal de asistencia. Aquí se capturan fecha, empleado, entrada, salida y novedades. |
-| `PERSONAL` | Catálogo de colaboradores, supervisores, estatus activo y reglas de clasificación por horario. |
+| `PERSONAL` | Catálogo de colaboradores, supervisores, estatus activo y reglas de clasificación por horario (el horario **vigente hoy** de cada quien). |
 | `NORMALIDAD` | Calendario auxiliar con días de la semana y catálogo de meses. |
+| `EXCEPCIONES_FECHA` | Horario especial para un día puntual (junta, evento, capacitación), para todo el equipo o para un empleado en concreto. |
+| `HISTORIAL_HORARIOS` | Respaldo de horarios anteriores, con su rango de fechas de vigencia, para que un cambio de turno no altere el semáforo de días ya pasados. |
 | Tableros de supervisor | Una hoja por supervisor con el resumen mensual de su equipo. La demo incluye varias hojas de ejemplo con nombres ficticios. |
 
 ## Flujo de trabajo
@@ -164,6 +168,34 @@ El formato condicional pinta el campo `SEMÁFORO` por estado: verde, amarillo, r
 
 Una hoja auxiliar de calendario (`NORMALIDAD`) documenta los días y meses usados por el archivo, aunque `REGISTRO` calcula esa información directamente con fórmulas.
 
+## Casos especiales de horario
+
+`REGISTRO` no compara la hora de entrada directamente contra `PERSONAL`. Primero calcula, para cada fila (en 3 columnas ocultas al final de `REGISTRO`: `UMBRAL AMARILLO`, `UMBRAL ROJO` y `UMBRAL ROJO FUERTE`), cuál era el umbral que en verdad aplicaba ese día para ese colaborador, revisando en este orden:
+
+1. **`EXCEPCIONES_FECHA`** — ¿hay una excepción para ese empleado en esa fecha exacta?
+2. **`EXCEPCIONES_FECHA`** — si no, ¿hay una excepción general para esa fecha (con `No. EMP` vacío, o sea "aplica a todos")?
+3. **`HISTORIAL_HORARIOS`** — si no, ¿ese empleado tenía un horario distinto vigente en esa fecha (porque ya cambió de turno)?
+4. **`PERSONAL`** — si nada de lo anterior aplica, se usa el horario actual del colaborador (el comportamiento de siempre).
+
+No necesitas tocar ninguna fórmula para usar esto: solo llena la hoja que corresponda cuando se dé el caso. Si nunca las usas, el archivo funciona exactamente igual que antes.
+
+**Caso 1 — Un día en específico piden que todos (o algunos) entren a cierta hora:**
+
+En `EXCEPCIONES_FECHA` agrega una fila con la fecha y los 4 horarios (verde, amarillo, rojo, rojo fuerte — los mismos 4 niveles que usa `PERSONAL`) que aplican ese día:
+- Deja `No. EMP` **vacío** si el horario especial aplica a todo el equipo.
+- Pon el número de empleado si solo aplica a una persona (por ejemplo, alguien con un permiso especial de llegar más tarde ese día).
+
+Ese día, el semáforo de `REGISTRO` usa esos umbrales en vez de los umbrales normales de `PERSONAL`, sin afectar ningún otro día.
+
+**Caso 2 — Un colaborador cambia de horario a la mitad del periodo:**
+
+Si simplemente editas sus umbrales en `PERSONAL`, **todo su historial pasado en `REGISTRO` se recalcularía con el horario nuevo**, lo cual estaría mal. Para evitarlo:
+
+1. Antes de cambiar nada en `PERSONAL`, agrega una fila en `HISTORIAL_HORARIOS` con: número de empleado, la fecha desde la que aplicó su horario **anterior** (`VIGENTE DESDE`), la fecha en que dejó de aplicar (`VIGENTE HASTA` = el día antes del cambio), y los 8 umbrales que tenía ese horario anterior (los mismos que ya tenía capturados en `PERSONAL`).
+2. Ahora sí, actualiza los umbrales en `PERSONAL` con el horario nuevo.
+
+A partir de ahí, los registros con fecha dentro del rango guardado en `HISTORIAL_HORARIOS` siguen usando el horario viejo, y los registros nuevos (después de `VIGENTE HASTA`) usan automáticamente el horario que quedó en `PERSONAL`.
+
 ## Tableros por supervisor
 
 Cada supervisor tiene su propia hoja, con la misma estructura:
@@ -183,12 +215,17 @@ El archivo no usa una sola fórmula "mágica": encadena varias técnicas de Exce
 ```
 PERSONAL (catálogo maestro)
   └─ columna LLAVE = SUPERVISOR & "|" & posición consecutiva entre sus activos
+
+EXCEPCIONES_FECHA / HISTORIAL_HORARIOS (casos especiales, opcionales)
+  └─ umbrales que sustituyen a PERSONAL solo para una fecha, o solo mientras estuvieron vigentes
         │
         ▼
 REGISTRO (captura diaria)
   ├─ trae NOMBRE / SUPERVISOR desde PERSONAL buscando por número de empleado
   ├─ calcula DÍA, MES y TIPO DÍA a partir de la fecha
-  └─ compara la hora de entrada contra los umbrales del empleado → SEMÁFORO
+  ├─ resuelve el umbral efectivo del día (columnas ocultas UMBRAL AMARILLO/ROJO/ROJO FUERTE):
+  │   EXCEPCIONES_FECHA (empleado) → EXCEPCIONES_FECHA (todos) → HISTORIAL_HORARIOS (vigente ese día) → PERSONAL (actual)
+  └─ compara la hora de entrada contra esos umbrales ya resueltos → SEMÁFORO
         │
         ▼
 Tableros de supervisor
@@ -215,12 +252,19 @@ Clasificación del semáforo, evaluando primero los niveles más severos (`REGIS
   IF($L2<>"",UPPER($L2),
   IF($C2="","FALTA",
   IFERROR(
-    IF($C2>=umbral_rojo_fuerte,"ROJO FUERTE",
-    IF($C2>=umbral_rojo,"ROJO",
-    IF($C2>=umbral_amarillo,"AMARILLO","VERDE"))),
+    IF($C2>=$O2,"ROJO FUERTE",
+    IF($C2>=$N2,"ROJO",
+    IF($C2>=$M2,"AMARILLO","VERDE"))),
   "REVISAR"))))
 ```
-Cada `umbral_*` es en realidad un `INDEX/MATCH` contra la columna correspondiente de `PERSONAL`, eligiendo el par de columnas de entre semana o fin de semana según `TIPO DÍA`.
+`$M2`, `$N2` y `$O2` son las 3 columnas ocultas (`UMBRAL AMARILLO`, `UMBRAL ROJO`, `UMBRAL ROJO FUERTE`) que resuelven el umbral efectivo de ese día, con esta prioridad (simplificada; cada paso es en realidad un `INDEX/MATCH` con `IFERROR` de respaldo):
+```excel
+=IFERROR(excepción del empleado en EXCEPCIONES_FECHA,
+  IFERROR(excepción general en EXCEPCIONES_FECHA,
+    IFERROR(horario vigente en HISTORIAL_HORARIOS para esa fecha,
+      horario actual en PERSONAL)))
+```
+Ver [Casos especiales de horario](#casos-especiales-de-horario) para el detalle de cuándo se usa cada nivel.
 
 Clave compuesta que permite reconstruir el equipo de cada supervisor sin macros (`PERSONAL`):
 ```excel
@@ -257,6 +301,8 @@ Todo esto corre con fórmulas nativas de Excel (incluyendo fórmulas de matriz e
 - Catálogo centralizado de personal.
 - Clasificación automática por semáforo, con prioridad explícita entre novedad, falta y niveles de retardo.
 - Reglas de horario propias por colaborador, diferenciadas entre semana y fin de semana.
+- Excepciones de horario por fecha (para todo el equipo o para un empleado), sin afectar otros días.
+- Historial de cambios de horario, para que un cambio de turno no altere el semáforo de registros ya pasados.
 - Excepciones autorizadas mediante lista desplegable.
 - Indicador de revisión cuando un empleado no existe o su configuración no coincide.
 - Cálculo automático de día, mes, tipo de día y horas (incluye turnos que cruzan la medianoche).
@@ -406,8 +452,10 @@ The workbook is organized into three kinds of sheets:
 | Sheet type | Purpose |
 | --- | --- |
 | `REGISTRO` | Main attendance database. Date, employee, check-in, check-out, and exceptions are entered here. |
-| `PERSONAL` | Employee catalog with supervisors, active status, and schedule classification rules. |
+| `PERSONAL` | Employee catalog with supervisors, active status, and schedule classification rules (each employee's **currently active** schedule). |
 | `NORMALIDAD` | Helper calendar with weekdays and a month catalog. |
+| `EXCEPCIONES_FECHA` | Special schedule for a specific date (a meeting, event, or training), for the whole team or for a single employee. |
+| `HISTORIAL_HORARIOS` | Backup of past schedules with their effective date range, so a shift change doesn't retroactively alter the traffic light of days that already happened. |
 | Supervisor dashboards | One sheet per supervisor summarizing their team each month. The demo includes a few sample sheets with fictional names. |
 
 ## Workflow
@@ -485,6 +533,34 @@ Conditional formatting colors the `SEMÁFORO` field by status: green, yellow, re
 
 A helper calendar sheet (`NORMALIDAD`) documents the days and months used by the file, although `REGISTRO` calculates that information directly with formulas.
 
+## Special schedule cases
+
+`REGISTRO` doesn't compare check-in time directly against `PERSONAL`. For every row it first works out, in 3 hidden helper columns at the end of `REGISTRO` (`UMBRAL AMARILLO`, `UMBRAL ROJO`, `UMBRAL ROJO FUERTE`), which threshold actually applied to that employee on that date, checking in this order:
+
+1. **`EXCEPCIONES_FECHA`** — is there an exception for that specific employee on that exact date?
+2. **`EXCEPCIONES_FECHA`** — if not, is there a general exception for that date (blank `No. EMP`, meaning "applies to everyone")?
+3. **`HISTORIAL_HORARIOS`** — if not, did that employee have a different schedule in effect on that date (because their shift already changed since)?
+4. **`PERSONAL`** — if none of the above apply, use the employee's current schedule (today's default behavior).
+
+You don't need to touch any formula to use this — just fill in the relevant sheet when the situation comes up. If you never use them, the file behaves exactly as before.
+
+**Case 1 — On a specific day, everyone (or some people) is asked to arrive at a set time:**
+
+Add a row in `EXCEPCIONES_FECHA` with the date and the 4 thresholds (green, yellow, red, strong red — the same 4 levels `PERSONAL` uses) that apply that day:
+- Leave `No. EMP` **blank** if the special schedule applies to the whole team.
+- Enter the employee number if it only applies to one person (for example, someone authorized to arrive later that specific day).
+
+That day, `REGISTRO`'s traffic light uses those thresholds instead of the employee's normal `PERSONAL` thresholds, without affecting any other day.
+
+**Case 2 — An employee's schedule changes partway through the period:**
+
+If you simply edit their thresholds in `PERSONAL`, **their entire past history in `REGISTRO` would be recalculated with the new schedule**, which would be wrong. To avoid that:
+
+1. Before changing anything in `PERSONAL`, add a row in `HISTORIAL_HORARIOS` with: employee number, the date their **previous** schedule started applying (`VIGENTE DESDE`), the date it stopped applying (`VIGENTE HASTA` = the day before the change), and the 8 thresholds that old schedule had (the same ones already captured in `PERSONAL`).
+2. Now update the thresholds in `PERSONAL` with the new schedule.
+
+From then on, records dated within the range saved in `HISTORIAL_HORARIOS` keep using the old schedule, and new records (after `VIGENTE HASTA`) automatically use whatever is currently in `PERSONAL`.
+
 ## Supervisor dashboards
 
 Each supervisor has their own sheet, sharing the same structure:
@@ -504,12 +580,17 @@ The file doesn't rely on one "magic" formula: it chains several Excel techniques
 ```
 PERSONAL (master catalog)
   └─ LLAVE column = SUPERVISOR & "|" & consecutive position among their active employees
+
+EXCEPCIONES_FECHA / HISTORIAL_HORARIOS (optional special cases)
+  └─ thresholds that replace PERSONAL only for one date, or only while they were in effect
         │
         ▼
 REGISTRO (daily entry)
   ├─ pulls NOMBRE / SUPERVISOR from PERSONAL by looking up the employee number
   ├─ calculates DÍA, MES, and TIPO DÍA from the date
-  └─ compares the check-in time against that employee's thresholds → SEMÁFORO
+  ├─ resolves that day's effective threshold (hidden columns UMBRAL AMARILLO/ROJO/ROJO FUERTE):
+  │   EXCEPCIONES_FECHA (employee) → EXCEPCIONES_FECHA (everyone) → HISTORIAL_HORARIOS (in effect that day) → PERSONAL (current)
+  └─ compares the check-in time against those already-resolved thresholds → SEMÁFORO
         │
         ▼
 Supervisor dashboards
@@ -536,12 +617,19 @@ Traffic-light classification, checking the most severe levels first (`REGISTRO`)
   IF($L2<>"",UPPER($L2),
   IF($C2="","FALTA",
   IFERROR(
-    IF($C2>=strong_red_threshold,"ROJO FUERTE",
-    IF($C2>=red_threshold,"ROJO",
-    IF($C2>=yellow_threshold,"AMARILLO","VERDE"))),
+    IF($C2>=$O2,"ROJO FUERTE",
+    IF($C2>=$N2,"ROJO",
+    IF($C2>=$M2,"AMARILLO","VERDE"))),
   "REVISAR"))))
 ```
-Each `*_threshold` is actually an `INDEX/MATCH` against the matching column in `PERSONAL`, picking the weekday or weekend pair of columns based on `TIPO DÍA`.
+`$M2`, `$N2`, and `$O2` are the 3 hidden columns (`UMBRAL AMARILLO`, `UMBRAL ROJO`, `UMBRAL ROJO FUERTE`) that resolve that day's effective threshold, with this priority (simplified; each step is actually an `INDEX/MATCH` with an `IFERROR` fallback):
+```excel
+=IFERROR(employee-specific exception in EXCEPCIONES_FECHA,
+  IFERROR(general exception in EXCEPCIONES_FECHA,
+    IFERROR(schedule in effect that date in HISTORIAL_HORARIOS,
+      current schedule in PERSONAL)))
+```
+See [Special schedule cases](#special-schedule-cases) for the detail of when each level kicks in.
 
 Composite key that lets each supervisor's team be rebuilt without macros (`PERSONAL`):
 ```excel
@@ -578,6 +666,8 @@ All of this runs on native Excel formulas (including array formulas in `REGISTRO
 - Centralized employee catalog.
 - Automatic traffic-light classification, with an explicit priority order between exception, absence, and lateness levels.
 - Per-employee schedule rules, differentiated between weekdays and weekends.
+- Date-specific schedule exceptions (for the whole team or one employee), without affecting other days.
+- Schedule change history, so a shift change doesn't retroactively alter the traffic light of past records.
 - Authorized exceptions through a dropdown list.
 - Review indicator when an employee does not exist or the configuration does not match.
 - Automatic weekday, month, day type, and hours calculation (including overnight shifts).
