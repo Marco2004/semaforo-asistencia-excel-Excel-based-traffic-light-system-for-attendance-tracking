@@ -94,7 +94,7 @@ El workbook se organiza en tres tipos de hoja:
 1. Abrir el archivo en Microsoft Excel.
 2. Revisar o actualizar el catálogo en `PERSONAL`.
 3. Cargar registros diarios en `REGISTRO`.
-4. Usar la columna `NOVEDAD` cuando un día tenga justificación autorizada.
+4. Usar la columna `NOVEDAD` cuando un día tenga justificación autorizada (`VACACIONES`, `INCAPACIDAD`, `PERMISO`, `FESTIVO`, `DESCANSO`, `DESCANSO POR DINAMICA` o `DINAMICA`).
 5. Elegir el mes en el selector de cada hoja de supervisor.
 6. Revisar conteos, porcentaje verde, registros, promedio de horas y gráfica.
 
@@ -114,7 +114,7 @@ El sistema tiene dos tipos de usuario, cada uno con su propio recorrido dentro d
 **Rol 2 — Quien captura asistencia (día a día):**
 
 1. Agrega una fila en `REGISTRO` por cada evento: fecha, número de empleado, hora de entrada y hora de salida.
-2. Si el día tuvo una justificación autorizada, la selecciona en la lista desplegable de `NOVEDAD` (`VACACIONES`, `INCAPACIDAD`, `PERMISO` o `FESTIVO`); si no, la deja vacía.
+2. Si el día tuvo una justificación autorizada, la selecciona en la lista desplegable de `NOVEDAD` (`VACACIONES`, `INCAPACIDAD`, `PERMISO`, `FESTIVO`, `DESCANSO`, `DESCANSO POR DINAMICA` o `DINAMICA`); si no, la deja vacía.
 3. El resto de la fila (nombre, supervisor, día, mes, tipo de día, semáforo y horas) se calcula solo, apenas hay fecha, número de empleado y horas capturadas.
 4. Si una fila muestra `NO EXISTE` en nombre/supervisor o `REVISAR` en el semáforo, el número de empleado no coincide con `PERSONAL` (typo, empleado inactivo o umbrales incompletos). Se corrige en el catálogo, no en `REGISTRO`.
 
@@ -156,7 +156,7 @@ La columna `SEMÁFORO` sigue esta prioridad:
 
 Cada colaborador tiene su propio conjunto de umbrales (hora base, tolerancia amarilla, umbral rojo y umbral rojo fuerte), definidos por separado para días entre semana y para fin de semana. Esto permite que equipos con turnos distintos convivan en el mismo archivo sin duplicar hojas ni fórmulas.
 
-El formato condicional pinta el campo `SEMÁFORO` por estado: verde, amarillo, rojo, rojo fuerte, gris para faltas y morado para las excepciones autorizadas.
+El formato condicional pinta el campo `SEMÁFORO` por estado: verde, amarillo, rojo, rojo fuerte, gris para faltas y morado para las excepciones autorizadas (`VACACIONES`, `INCAPACIDAD`, `PERMISO`, `FESTIVO`, `DESCANSO`, `DESCANSO POR DINAMICA`, `DINAMICA`).
 
 ## Catálogo de personal
 
@@ -170,11 +170,11 @@ Cada supervisor tiene su propia hoja, con la misma estructura:
 
 - Selector de periodo (mes) mediante lista desplegable.
 - Lista automática de los colaboradores activos de ese supervisor.
-- Conteos mensuales por estado (verde, amarillo, rojo, rojo fuerte, falta, y cada tipo de novedad).
+- Conteos mensuales por estado (verde, amarillo, rojo, rojo fuerte, falta, y cada tipo de novedad: `VACACIONES`, `FESTIVO`, `INCAPACIDAD`, `PERMISO`, `DESCANSO`, `DESCANSO POR DINAMICA`, `DINAMICA`).
 - Totales, porcentaje verde y promedio de horas del periodo.
-- Gráfica circular de distribución mensual.
+- Gráfica circular de distribución mensual, ubicada a la derecha de todas las columnas de novedad para no taparlas.
 
-Los conteos se calculan contra `REGISTRO`, filtrando por empleado, mes seleccionado y estado de semáforo. El porcentaje verde se calcula solo sobre los estados operativos; las novedades justificadas se muestran aparte para no mezclarlas con incumplimientos.
+Los conteos se calculan contra `REGISTRO`, filtrando por empleado, mes seleccionado y estado de semáforo. El porcentaje verde se calcula solo sobre los estados operativos; las novedades justificadas se muestran aparte, cada una en su propia columna, para no mezclarlas con incumplimientos.
 
 ## Arquitectura interna y fórmulas clave
 
@@ -244,7 +244,7 @@ Conteo mensual por estado y promedio de horas (tablero de supervisor):
 ```
 
 Validación de datos que evita capturas inválidas:
-- Lista desplegable en `NOVEDAD`: `VACACIONES, INCAPACIDAD, PERMISO, FESTIVO`.
+- Lista desplegable en `NOVEDAD`: `VACACIONES, INCAPACIDAD, PERMISO, FESTIVO, DESCANSO, DESCANSO POR DINAMICA, DINAMICA`.
 - Rango de hora válido en entrada/salida: `AND(hora>=00:00:00, hora<=23:59:59)`.
 - Lista desplegable de mes en cada tablero de supervisor: `ENERO...DICIEMBRE`.
 
@@ -262,7 +262,7 @@ Todo esto corre con fórmulas nativas de Excel (incluyendo fórmulas de matriz e
 - Cálculo automático de día, mes, tipo de día y horas (incluye turnos que cruzan la medianoche).
 - Filtros y formato condicional sobre la base de asistencia.
 - Tableros separados por supervisor, con selector mensual, totales, porcentaje verde y promedio de horas.
-- Gráfica circular de distribución mensual por supervisor.
+- Gráfica circular de distribución mensual por supervisor, con colores fijos por segmento (no dependen del tema de Excel), para que se vean igual en cualquier versión de Excel.
 
 ## Ejemplo de uso
 
@@ -274,6 +274,9 @@ Todo esto corre con fórmulas nativas de Excel (incluyendo fórmulas de matriz e
 | Entrada después del umbral rojo fuerte | `ROJO FUERTE` |
 | Sin hora de entrada | `FALTA` |
 | `NOVEDAD = VACACIONES` | `VACACIONES` |
+| `NOVEDAD = DESCANSO` | `DESCANSO` |
+| `NOVEDAD = DESCANSO POR DINAMICA` | `DESCANSO POR DINAMICA` |
+| `NOVEDAD = DINAMICA` | `DINAMICA` |
 | Número de empleado no existente | Indicador de revisión |
 
 ## Control de calidad
@@ -412,7 +415,7 @@ The workbook is organized into three kinds of sheets:
 1. Open the file in Microsoft Excel.
 2. Review or update the catalog in `PERSONAL`.
 3. Load daily records in `REGISTRO`.
-4. Use the `NOVEDAD` column when a day has an authorized justification.
+4. Use the `NOVEDAD` column when a day has an authorized justification (`VACACIONES`, `INCAPACIDAD`, `PERMISO`, `FESTIVO`, `DESCANSO`, `DESCANSO POR DINAMICA`, or `DINAMICA`).
 5. Select the month in the dropdown on each supervisor sheet.
 6. Review counts, green percentage, records, average hours, and the chart.
 
@@ -432,7 +435,7 @@ The system has three kinds of users, each with their own path through the same f
 **Role 2 — Whoever captures attendance (day to day):**
 
 1. Add one row per event in `REGISTRO`: date, employee number, check-in time, and check-out time.
-2. If the day had an authorized justification, pick it from the `NOVEDAD` dropdown (`VACACIONES`, `INCAPACIDAD`, `PERMISO`, or `FESTIVO`); otherwise leave it blank.
+2. If the day had an authorized justification, pick it from the `NOVEDAD` dropdown (`VACACIONES`, `INCAPACIDAD`, `PERMISO`, `FESTIVO`, `DESCANSO`, `DESCANSO POR DINAMICA`, or `DINAMICA`); otherwise leave it blank.
 3. The rest of the row (name, supervisor, day, month, day type, traffic light, and hours) calculates itself as soon as date, employee number, and times are entered.
 4. If a row shows `NO EXISTE` in name/supervisor or a review flag in the traffic-light column, the employee number doesn't match `PERSONAL` (typo, inactive employee, or incomplete thresholds). Fix it in the catalog, not in `REGISTRO`.
 
@@ -474,7 +477,7 @@ The `SEMÁFORO` column follows this priority:
 
 Each employee has their own set of thresholds (base time, yellow tolerance, red threshold, and strong-red threshold), defined separately for weekdays and weekends. This lets teams with different shifts coexist in the same file without duplicating sheets or formulas.
 
-Conditional formatting colors the `SEMÁFORO` field by status: green, yellow, red, strong red, gray for absences, and purple for authorized exceptions.
+Conditional formatting colors the `SEMÁFORO` field by status: green, yellow, red, strong red, gray for absences, and purple for authorized exceptions (`VACACIONES`, `INCAPACIDAD`, `PERMISO`, `FESTIVO`, `DESCANSO`, `DESCANSO POR DINAMICA`, `DINAMICA`).
 
 ## Employee catalog
 
@@ -488,11 +491,11 @@ Each supervisor has their own sheet, sharing the same structure:
 
 - A month selector via dropdown.
 - An automatic list of that supervisor's active employees.
-- Monthly counts by status (green, yellow, red, strong red, absent, and each exception type).
+- Monthly counts by status (green, yellow, red, strong red, absent, and each exception type: `VACACIONES`, `FESTIVO`, `INCAPACIDAD`, `PERMISO`, `DESCANSO`, `DESCANSO POR DINAMICA`, `DINAMICA`).
 - Totals, green percentage, and average hours for the period.
-- A monthly distribution pie chart.
+- A monthly distribution pie chart, positioned to the right of every exception column so none of them are hidden behind it.
 
-Counts are calculated against `REGISTRO`, filtering by employee, selected month, and traffic-light status. The green percentage is calculated only over operational states; authorized exceptions are shown separately so they aren't mixed with attendance issues.
+Counts are calculated against `REGISTRO`, filtering by employee, selected month, and traffic-light status. The green percentage is calculated only over operational states; authorized exceptions are shown separately, each in its own column, so they aren't mixed with attendance issues.
 
 ## Internal architecture and key formulas
 
@@ -562,7 +565,7 @@ Monthly count per status and average hours (supervisor dashboard):
 ```
 
 Data validation that prevents invalid entries:
-- Dropdown list in `NOVEDAD`: `VACACIONES, INCAPACIDAD, PERMISO, FESTIVO`.
+- Dropdown list in `NOVEDAD`: `VACACIONES, INCAPACIDAD, PERMISO, FESTIVO, DESCANSO, DESCANSO POR DINAMICA, DINAMICA`.
 - Valid time range for check-in/check-out: `AND(time>=00:00:00, time<=23:59:59)`.
 - Month dropdown on each supervisor dashboard: `ENERO...DICIEMBRE`.
 
@@ -580,7 +583,7 @@ All of this runs on native Excel formulas (including array formulas in `REGISTRO
 - Automatic weekday, month, day type, and hours calculation (including overnight shifts).
 - Filters and conditional formatting on the attendance database.
 - Separate supervisor dashboards with a monthly selector, totals, green percentage, and average hours.
-- Monthly distribution pie chart per supervisor.
+- Monthly distribution pie chart per supervisor, with fixed per-slice colors (not theme-dependent), so it looks the same across Excel versions.
 
 ## Usage example
 
@@ -592,6 +595,9 @@ All of this runs on native Excel formulas (including array formulas in `REGISTRO
 | Check-in after strong red threshold | `ROJO FUERTE` |
 | No check-in | `FALTA` |
 | `NOVEDAD = VACACIONES` | `VACACIONES` |
+| `NOVEDAD = DESCANSO` | `DESCANSO` |
+| `NOVEDAD = DESCANSO POR DINAMICA` | `DESCANSO POR DINAMICA` |
+| `NOVEDAD = DINAMICA` | `DINAMICA` |
 | Non-existing employee number | Review indicator |
 
 ## Quality assurance
